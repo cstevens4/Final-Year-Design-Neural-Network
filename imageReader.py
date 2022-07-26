@@ -7,10 +7,14 @@ new_img = cv2.resize(img, (28,28))
 
 invert = cv2.bitwise_not(new_img)
 
-vec = np.ravel(invert)
+arr = np.array(invert)
+arr = arr.reshape(1,28,28,1)
+arr = arr / 255
 
-print(img.shape)
-print(new_img.shape)
+#vec = np.ravel(invert)
+
+print(str(arr.shape) + "\t" + str(arr.size))
+#print(arr.size)
 
 #print(new_img)
 #print(invert)
@@ -19,4 +23,4 @@ print(new_img.shape)
 #cv2.waitKey(0)
 #cv2.destroyAllWindows()
 
-print(vec.size)
+#print(vec.size)
