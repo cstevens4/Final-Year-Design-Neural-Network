@@ -1,0 +1,143 @@
+---
+title: "nn"
+author: "Sunny Lee"
+date: "7/27/2022"
+output: pdf_document
+---
+
+```{r}
+randInitializeWeights <- function(l_in, l_out){
+  return(matrix(rnorm((1+l_in)*l_out), nrow = l_out))
+}
+
+sig <- function(z){
+  return(1/(1+exp(-z)))
+}
+
+diffSig <- function(z){
+  return(sig(z) * (1 - sig(z)))
+}
+
+createBatch <- function(train_x, train_y){
+  rows <- sample(nrow(train_x))
+  train_x <- as.data.frame(train_x[rows, ])
+  train_y <- as.data.frame(train_y[rows])
+  
+  mini_batches <- split(train_x, (seq(nrow(train_x))-1) %/% batch_size)
+  mini_batches_y <- split(train_y, (seq(nrow(train_x))-1) %/% batch_size)
+  
+  return(list(mini_batches, mini_batches_y))
+}
+
+feedForward <- function(w, a, z, batch){
+  a1 <- as.matrix(batch)
+  a[[1]] <- a1
+  for (i in 2:length(layers))
+  {
+    z[[i]] <- as.matrix(cbind(rep(1, dim(a[[i-1]])[1]), a[[i-1]])) %*% t(as.matrix(w[[i-1]]))
+    a[[i]] <- sig(z[[i]])
+  }
+  
+  return(list(a, z))
+}
+
+computeCost <- function(a, batch_y){
+  return( (1/batch_size) * sum((a - batch_y^2)) )
+}
+
+backProp <- function(w, delta, a, batch_y, num_layers, batch_size, learn_rate, epsilon){
+  delta[[num_layers]] <- (1/batch_size) * (a[[num_layers]]-as.matrix(batch_y)) * diffSig(z[[num_layers]])
+  for (i in (num_layers-1):2)
+  {
+    delta[[i]] <- (1/batch_size) * (as.matrix(delta[[i+1]]) %*% (w[[i]][, -1])) * as.matrix(diffSig(z[[i]]))
+  }
+  
+  for (i in length(w):1)
+  {
+    w_grad[[i]] <- (1/batch_size) * t(delta[[i+1]]) %*% cbind(rep(1, dim(a[[i]])[1]), a[[i]])
+    if(sqrt(sum(w_grad[[i]]^2)) < epsilon){
+      print("Convergence of gradients")
+      return(w)
+    }
+  }
+  
+  for (i in length(w):1)
+  {
+    w[[i]] <- w[[i]] - (learn_rate * w_grad[[i]])
+  }
+  
+  return( w )
+}
+
+```
+
+```{r}
+library(mltools)
+#layers with number of neurons 
+layers <- c(4, 8, 1)
+batch_size <- 4
+epsilon <- .00001
+num_layers <- length(layers)
+num_batch <- ceiling(dim(train_x)[1] / batch_size)
+cost <- vector(mode = "integer", length = 100)
+
+#set the learning rate
+learn_rate <- .2
+
+#initialize weights and biases
+w <- rep(list(1), length(layers)-1)
+for (i in 1:length(w))
+{
+  w[[i]] <- randInitializeWeights(layers[i], layers[i+1])
+}
+
+#initalize lists for holding the values for feeding forward as well as the deltas and gradients
+z <- rep(list(1), length(layers))
+a <- rep(list(1), length(layers))
+delta <- rep(list(1), length(layers))
+w_grad <- rep(list(1), length(w))
+
+for(epoch in 1:500){
+  #create mini batches
+  batches <- createBatch(train_x, train_y)
+  mini_batches <- batches[[1]]
+  mini_batches_y <- batches[[2]]
+  
+  for (batch in 1:num_batch){
+    #feedforward
+    az <- feedForward(w, a, z, mini_batches[[batch]])
+    a <- az[[1]]
+    z <- az[[2]]
+    
+    #calculate cost function
+    J <- computeCost(a[[num_layers]], mini_batches_y[[batch]])
+    
+    #backprop
+    w <- backProp(w, delta, a, mini_batches_y[[batch]], num_layers, batch_size, learn_rate, epsilon)
+    
+  }
+  rows <- sample(nrow(test_x))
+  test_x <- test_x[rows, ]
+  test_y <- test_y[rows]
+  
+  az <- feedForward(w, a, z, test_x)
+  a <- az[[1]]
+  z <- az[[2]]
+  cost[epoch] <- (1/length(test_y)) * sum((a[[num_layers]] - test_y)^2)
+}
+
+rows <- sample(nrow(test_x))
+test_x <- test_x[rows, ]
+test_y <- test_y[rows]
+
+az <- feedForward(w, a, z, test_x)
+a <- az[[1]]
+z <- az[[2]]
+  
+a[[num_layers]][a[[num_layers]] >= .5] <- 1
+a[[num_layers]][a[[num_layers]] < .5] <- 0
+
+table(a[[num_layers]], test_y)
+plot(cost, xlab = "Epoch", ylab = "Cost", main = "Cost on Test Data Over Epochs")
+mcc(as.vector(a[[num_layers]]), as.vector(test_y))
+```

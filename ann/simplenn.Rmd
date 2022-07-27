@@ -1,0 +1,76 @@
+---
+title: "simplenn"
+author: "Sunny Lee"
+date: "7/27/2022"
+output: pdf_document
+---
+```{r}
+data(iris)
+iris
+```
+
+```{r}
+randInitializeWeights <- function(l_in, l_out){
+  return(matrix(rnorm((1+l_in)*l_out), nrow = l_out))
+}
+
+sig <- function(z){
+  return(1/(1+exp(-z)))
+}
+
+diffSig <- function(z){
+  return(sig(z) * (1 - sig(z)))
+}
+
+```
+
+```{r}
+set.seed(1234)
+library(mltools)
+layers <- c(4, 1)
+learn_rate <- 1
+w <- list( randInitializeWeights(layers[1], layers[2]) ) 
+cost <- vector(mode = "integer", length = 200)
+
+for(epoch in 1:100){
+  rows <- sample(nrow(train_x))
+  train_x <- train_x[rows, ]
+  train_y <- train_y[rows]
+  mini_batches <- split(train_x, (seq(nrow(train_x))-1) %/% batch_size)
+  mini_batches_y <- split(train_y, (seq(nrow(train_x))-1) %/% batch_size)
+  for (batch in 1:num_batch){
+    a1 <- as.matrix(mini_batches[[batch]])
+    #a1 <- matrix(a1, nrow = dim(a1)[1]/2)
+    a1 <- cbind(rep(1, dim(a1)[1]), a1)
+    z2 <- (as.matrix(a1) %*% t(as.matrix(w[[1]])))
+    a2 <- sig(z2)
+    
+    J <- (1/batch_size) * sum((a2 - mini_batches_y[[batch]])^2)
+    
+    delta <- (2/batch_size) * (a2-as.matrix(mini_batches_y[[batch]])) * as.matrix(diffSig(z2))
+    
+    w_grad <- t(delta) %*% a1
+    
+    w[[1]] <- w[[1]] - (learn_rate * w_grad)
+  }
+  a1 <- as.matrix(test_x)
+  a1 <- cbind(rep(1, dim(a1)[1]), a1)
+  z2 <- (as.matrix(a1) %*% t(as.matrix(w[[1]])))
+  a2 <- sig(z2)
+  
+  #print((1/length(test_y)) * sum((a2 - test_y)^2))
+  cost[epoch] <- (1/length(test_y)) * sum((a2 - test_y)^2)
+}
+
+a1 <- as.matrix(test_x)
+a1 <- cbind(rep(1, dim(a1)[1]), a1)
+z2 <- (as.matrix(a1) %*% t(as.matrix(w[[1]])))
+a2 <- sig(z2)
+
+a2[a2 >= .5] <- 1
+a2[a2 < .5] <- 0
+
+table(a2, test_y)
+plot(cost, xlab = "Epoch", ylab = "Cost", main = "Cost on Test Data Over Epochs")
+mcc(as.vector(a2), as.vector(test_y))
+```
