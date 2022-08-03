@@ -45,16 +45,13 @@ model = keras.Sequential(
 batch_size = 128
 epochs = 10
 
-#model.compile(loss="mean_squared_error", optimizer="adam", metrics=["accuracy"])
+model.compile(loss="categorical_cross_entropy", optimizer="adam", metrics=["accuracy"])
 
-#model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1)
-#print("Model is complete")
+model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1)
+print("Model is complete")
 
-#model.save("FYD_CNN")
+model.save("FYD_CNN")
 #Results
-#score = model.evaluate(x_test, y_test, verbose=0)
-#print("Test loss:", score[0])
-#print("Test accuracy:", score[1])
-
-print(x_train.shape[-3:])
-print(x_test.shape)
+score = model.evaluate(x_test, y_test, verbose=0)
+print("Test loss:", score[0])
+print("Test accuracy:", score[1])
